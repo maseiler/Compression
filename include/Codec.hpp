@@ -7,8 +7,8 @@ class Codec {
   explicit Codec(std::string codecName) : codecName(std::move(codecName)) {}
   virtual ~Codec() = default;
 
-  virtual void encode() = 0;
-  virtual void decode() = 0;
+  virtual size_t encode(const uint8_t *src, size_t srcLen, uint8_t *dst) = 0;
+  virtual size_t decode(const uint8_t *src, size_t srcLen, uint8_t *dst) = 0;
 
  protected:
   const std::string codecName;
