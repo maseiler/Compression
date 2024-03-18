@@ -1,44 +1,23 @@
 #include "../include/DictionaryCodec.hpp"
 
-const size_t SEARCH_BUFFER_LENGTH = 7; // TODO make adjustable
-const size_t LOOK_AHEAD_BUFFER_LENGTH = 6; // TODO make adjustable
-
-
-void printBuffer(const uint8_t *src, size_t srcLen, size_t searchStart) {
-  std::cout << "|";
-  for (size_t i = 0; i < srcLen; i++) {
-    if (i == searchStart) {
-      if (i != 0)
-        std::cout << "|";
-    }
-    if (i == searchStart + SEARCH_BUFFER_LENGTH)
-      std::cout << "|";
-    if (i == searchStart + SEARCH_BUFFER_LENGTH + LOOK_AHEAD_BUFFER_LENGTH)
-      if (i != srcLen - 1)
-        std::cout << "|";
-    std::cout << src[i];
-  }
-  std::cout << "|" << std::endl;
-}
-
 size_t DictionaryCodec::encode(const uint8_t *src, size_t srcLen, uint8_t *dst) {
-  memcpy(dst, src, SEARCH_BUFFER_LENGTH);
-  this->compressedPosition = SEARCH_BUFFER_LENGTH;
+  if (this->searchBufferLength + this->lookAheadBufferLength > srcLen)
+    throw std::invalid_argument("Window size is larger than input length");
+
+  memcpy(dst, src, this->searchBufferLength);
+  this->compressedPosition = (int) this->searchBufferLength;
+
   size_t searchBufferStartIndex = 0;
-  std::vector<std::tuple<size_t, size_t, uint8_t *>> res; // TODO is there a way without this?
-  while (searchBufferStartIndex + LOOK_AHEAD_BUFFER_LENGTH
-      < SEARCH_BUFFER_LENGTH + LOOK_AHEAD_BUFFER_LENGTH) {
-    //printBuffer(src, srcLen, searchBufferStartIndex);
-    size_t searchIndex = searchBufferStartIndex + SEARCH_BUFFER_LENGTH - 1;
+  std::vector<std::tuple<size_t, size_t, uint8_t *>> compressedBlocks;
+  while (searchBufferStartIndex + this->lookAheadBufferLength
+      < this->searchBufferLength + this->lookAheadBufferLength) {
+    size_t searchIndex = searchBufferStartIndex + this->searchBufferLength - 1;
     size_t lookUpIndex = searchIndex + 1;
     auto t = std::make_tuple(0, 0, (uint8_t *) src + lookUpIndex);
-    while (searchIndex + 1
-        > searchBufferStartIndex) { // TODO searchIndex + 1 might result in unexpected behavior (searchIndex--)
-      //std::cout << "s: " << src[searchIndex] << ", l: " << src[lookUpIndex] << std::endl;
-      // find the longest match
+    // find the longest match
+    while (searchIndex + 1 > searchBufferStartIndex) {
       size_t matchLength = 1;
       if (src[searchIndex] == src[lookUpIndex]) {
-        //std::cout << "match pos: " << searchIndex << std::endl;
         size_t searchNext = searchIndex + 1;
         size_t lookUpNext = lookUpIndex + 1;
         while (src[searchNext] == src[lookUpNext]) {
@@ -51,13 +30,16 @@ size_t DictionaryCodec::encode(const uint8_t *src, size_t srcLen, uint8_t *dst) 
       }
       searchIndex--;
     }
-    res.emplace_back(t);
-    size_t lastMatchLen = std::get<1>(res[res.size() - 1]) + 1;
+    compressedBlocks.emplace_back(t);
+    size_t lastMatchLen = std::get<1>(compressedBlocks[compressedBlocks.size() - 1]) + 1;
     searchBufferStartIndex += lastMatchLen;
   }
-  size_t nextPos = SEARCH_BUFFER_LENGTH;
-  for (auto r : res) {
-    // TODO handle overflow
+
+  // write compressed values
+  size_t nextPos = this->searchBufferLength;
+  for (auto r : compressedBlocks) {
+    if (nextPos + 3 >= srcLen)
+      throw std::range_error("Compressed size is larger than original");
     memcpy(dst + nextPos, &std::get<0>(r), 1);
     memcpy(dst + nextPos + 1, &std::get<1>(r), 1);
     memcpy(dst + nextPos + 2, std::get<2>(r), 1);
@@ -67,8 +49,9 @@ size_t DictionaryCodec::encode(const uint8_t *src, size_t srcLen, uint8_t *dst) 
 }
 
 size_t DictionaryCodec::decode(const uint8_t *src, size_t srcLen, uint8_t *dst) {
-  memcpy(dst, src, SEARCH_BUFFER_LENGTH);
-  size_t positionToWrite = SEARCH_BUFFER_LENGTH;
+  memcpy(dst, src, this->searchBufferLength);
+
+  size_t positionToWrite = this->searchBufferLength;
   while (compressedPosition < srcLen) {
     size_t matchPosition = src[compressedPosition];
     size_t matchLength = src[compressedPosition + 1];
@@ -81,6 +64,15 @@ size_t DictionaryCodec::decode(const uint8_t *src, size_t srcLen, uint8_t *dst) 
     positionToWrite++;
     compressedPosition += 3;
   }
+
   this->compressedPosition = -1;
   return positionToWrite;
+}
+
+void DictionaryCodec::setSearchBufferLength(size_t length) {
+  this->searchBufferLength = length;
+}
+
+void DictionaryCodec::setLookAheadBufferLength(size_t length) {
+  this->lookAheadBufferLength = length;
 }

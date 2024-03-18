@@ -11,9 +11,12 @@ class DictionaryCodec : public Codec {
   ~DictionaryCodec() override = default;
   size_t encode(const uint8_t *src, size_t srcLen, uint8_t *dst) override;
   size_t decode(const uint8_t *src, size_t srcLen, uint8_t *dst) override;
-  // TODO set window size
+  void setSearchBufferLength(size_t length);
+  void setLookAheadBufferLength(size_t length);
 
  private:
+  size_t searchBufferLength = 7;
+  size_t lookAheadBufferLength = 6;
   int compressedPosition = -1; // TODO encode in output?
 };
 
