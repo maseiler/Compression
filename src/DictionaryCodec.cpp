@@ -23,6 +23,7 @@ void printBuffer(const uint8_t *src, size_t srcLen, size_t searchStart) {
 
 size_t DictionaryCodec::encode(const uint8_t *src, size_t srcLen, uint8_t *dst) {
   memcpy(dst, src, SEARCH_BUFFER_LENGTH);
+  this->compressedPosition = SEARCH_BUFFER_LENGTH;
   size_t searchBufferStartIndex = 0;
   std::vector<std::tuple<size_t, size_t, uint8_t *>> res; // TODO is there a way without this?
   while (searchBufferStartIndex + LOOK_AHEAD_BUFFER_LENGTH
@@ -66,6 +67,20 @@ size_t DictionaryCodec::encode(const uint8_t *src, size_t srcLen, uint8_t *dst) 
 }
 
 size_t DictionaryCodec::decode(const uint8_t *src, size_t srcLen, uint8_t *dst) {
-  return 0;
+  memcpy(dst, src, SEARCH_BUFFER_LENGTH);
+  size_t positionToWrite = SEARCH_BUFFER_LENGTH;
+  while (compressedPosition < srcLen) {
+    size_t matchPosition = src[compressedPosition];
+    size_t matchLength = src[compressedPosition + 1];
+    uint8_t symbol = src[compressedPosition + 2];
+    for (size_t i = 0; i < matchLength; i++) {
+      memcpy(dst + positionToWrite, &dst[positionToWrite - matchPosition], 1);
+      positionToWrite++;
+    }
+    memcpy(dst + positionToWrite, &symbol, 1);
+    positionToWrite++;
+    compressedPosition += 3;
+  }
+  this->compressedPosition = -1;
+  return positionToWrite;
 }
-

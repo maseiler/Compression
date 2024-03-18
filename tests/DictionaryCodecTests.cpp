@@ -39,6 +39,8 @@ TEST_F(DictionaryCodecTest, DecodedOutputIsOriginal) {
   auto *decompressed = (uint8_t *) malloc(inputSize);
   dc.decode(compressed, compressedSize, decompressed);
 
+  const char* decompressedStr = (const char*) decompressed;
+  EXPECT_EQ(inputSize, strlen(decompressedStr));
   EXPECT_TRUE(std::equal(inputBytes, inputBytes + inputSize, decompressed));
   free(compressed);
   free(decompressed);
