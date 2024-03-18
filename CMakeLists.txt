@@ -18,6 +18,7 @@ enable_testing()
 add_executable(
         RunLengthCodecTests
         tests/RunLengthCodecTests.cpp
+        tests/DictionaryCodecTests.cpp
 )
 target_link_libraries(
         RunLengthCodecTests
