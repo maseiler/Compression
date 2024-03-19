@@ -1,4 +1,3 @@
-#include <iostream>
 #include "DataGenerator.cpp"
 
 int main(int argc, char *argv[]) {
@@ -10,11 +9,5 @@ int main(int argc, char *argv[]) {
   dg.SetDirectionChangeProbability(50);
   size_t dataSize = 500;
   auto *data = (uint8_t *) malloc(dataSize);
-  dg.generate(data, dataSize);
-
-  for (size_t i = 0; i < dataSize; i++) {
-    std::cout << (size_t) data[i] << std::endl;
-    //std::cout << (size_t) data[i];
-  }
-  std::cout << std::endl;
+  dg.generate(data, dataSize, true);
 }

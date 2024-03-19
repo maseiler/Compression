@@ -1,4 +1,10 @@
 #include <random>
+#include <stdexcept>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+
+std::filesystem::path CWD = std::filesystem::current_path();
 
 class DataGenerator {
  public:
@@ -16,7 +22,7 @@ class DataGenerator {
    */
   explicit DataGenerator() = default;
 
-  void generate(uint8_t *dst, size_t size) const {
+  void generate(uint8_t *dst, size_t size, bool writeToFile) const {
     std::mt19937 engine(seed);
     std::uniform_int_distribution<int> runChange(0, 100);
     std::uniform_int_distribution<int> newRun(minRun, maxRun);
@@ -54,6 +60,21 @@ class DataGenerator {
         }
       }
     }
+
+    if (writeToFile){
+      // TODO allow separator
+      auto filePathStr = (CWD / ".." / "benchmark" / "data" / "dataset.txt").string();
+      std::ofstream fileOut;
+      fileOut.open (filePathStr);
+      for(size_t i = 0; i < size; i++){
+        fileOut << dst[i];
+      }
+      fileOut.close();
+    }
+  }
+
+  void generate(uint8_t *dst, size_t size) const {
+    return generate(dst, size, false);
   }
 
   // Getters

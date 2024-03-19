@@ -14,8 +14,6 @@ class RunLengthCodecTest : public ::testing::Test {
 
 };
 
-// TODO test case: //const char* inputStr = "ABCABCABC";
-
 TEST_F(RunLengthCodecTest, EncodedOutputIsSmaller) {
   RunLengthCodec rle;
   const char *inputStr = "AAAAABBBCCCCCCCCDEEEE";

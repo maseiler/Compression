@@ -19,7 +19,8 @@ add_executable(
         RunLengthCodecTests
         tests/RunLengthCodecTests.cpp
         tests/DictionaryCodecTests.cpp
-        benchmark/main.cpp
+        #benchmark/main.cpp
+        benchmark/Benchmark1.cpp
 )
 target_link_libraries(
         RunLengthCodecTests
