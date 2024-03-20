@@ -49,8 +49,8 @@ TEST_F(DictionaryCodecTest, DecodedOutputIsOriginal2) {
   auto *inputBytes = (uint8_t *) inputStr;
   auto *compressed = (uint8_t *) malloc(inputSize);
   DictionaryCodec dc;
-  dc.setLookAheadBufferLength(3);
-  dc.setSearchBufferLength(3);
+  dc.SetLookAheadBufferLength(3);
+  dc.SetSearchBufferLength(3);
   size_t compressedSize = dc.encode(inputBytes, inputSize, compressed);
 
   auto *decompressed = (uint8_t *) malloc(inputSize);
@@ -64,13 +64,14 @@ TEST_F(DictionaryCodecTest, DecodedOutputIsOriginal2) {
 }
 
 TEST_F(DictionaryCodecTest, EncodedOutputIsLarger) {
+  // TODO fails because verification is commented out
   const char *inputStr = "ABCDEF";
   size_t inputSize = strlen(inputStr);
   auto *inputBytes = (uint8_t *) inputStr;
   auto *compressed = (uint8_t *) malloc(inputSize);
   DictionaryCodec dc;
-  dc.setLookAheadBufferLength(3);
-  dc.setSearchBufferLength(3);
+  dc.SetLookAheadBufferLength(3);
+  dc.SetSearchBufferLength(3);
   EXPECT_THROW({
                  try {
                    size_t compressedSize = dc.encode(inputBytes, inputSize, compressed);

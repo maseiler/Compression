@@ -81,16 +81,16 @@ TEST_F(Benchmark1, RunLengthCodec) {
 TEST_F(Benchmark1, DictionaryCodec) {
   std::cout << "DictionaryCodec" << std::endl;
   DictionaryCodec dc;
-  dc.setSearchBufferLength(4);
-  dc.setLookAheadBufferLength(3);
+  dc.SetSearchBufferLength(20);
+  dc.SetLookAheadBufferLength(15);
   auto t1 = high_resolution_clock::now();
-  size_t compressedSize = dc.encode(inputBytes, inputSize, compressedRLE);
+  size_t compressedSize = dc.encode(inputBytes, inputSize, compressedDC);
   auto t2 = high_resolution_clock::now();
   duration<double, std::milli> ms = t2 - t1;
   result.emplace("Compression Time", ms.count());
 
   t1 = high_resolution_clock::now();
-  dc.decode(compressedRLE, compressedSize, decompressedRLE);
+  dc.decode(compressedDC, compressedSize, decompressedDC);
   t2 = high_resolution_clock::now();
   ms = t2 - t1;
   result.emplace("Decompression Time", ms.count());

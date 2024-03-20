@@ -1,8 +1,10 @@
 # Results
 
-After I set up my benchmarks and executed them, I had to find out that my LZ77 implementation is fault :'(.
+~~After I set up my benchmarks and executed them, I had to find out that my LZ77 implementation is fault :'(.
 Unfortunately, I was not able to fix the bug in the given time... However, I'd like to explain anticipated results
-below.
+below.~~
+
+EDIT: I did it! A little late, but I couldn't resist solving it.
 
 Run-length encoding is very effective for consecutive, recurring symbols. It finds wide adoption in media compression,
 for example for images. My goal was to create a benchmark with an actual image, however, due to my byte-based

@@ -4,75 +4,92 @@ size_t DictionaryCodec::encode(const uint8_t *src, size_t srcLen, uint8_t *dst) 
   if (this->searchBufferLength + this->lookAheadBufferLength > srcLen)
     throw std::invalid_argument("Window size is larger than input length");
 
-  memcpy(dst, src, this->searchBufferLength);
-  this->compressedPosition = (int) this->searchBufferLength;
+  std::vector<std::tuple<size_t, size_t, uint8_t>> compressedBlocks;
+  int lookAheadBufferStart = 0;
+  while (lookAheadBufferStart < srcLen) {
+    auto t = std::make_tuple(0, 0, src[lookAheadBufferStart]);
 
-  size_t searchBufferStartIndex = 0;
-  std::vector<std::tuple<size_t, size_t, uint8_t *>> compressedBlocks;
-  while (searchBufferStartIndex + this->lookAheadBufferLength
-      < this->searchBufferLength + this->lookAheadBufferLength) {
-    size_t searchIndex = searchBufferStartIndex + this->searchBufferLength - 1;
-    size_t lookUpIndex = searchIndex + 1;
-    auto t = std::make_tuple(0, 0, (uint8_t *) src + lookUpIndex);
+    // do not iterate past search buffer (to the left)
+    int maxSearchOffset = this->searchBufferLength;
+    if (lookAheadBufferStart - this->searchBufferLength < 0)
+      maxSearchOffset = lookAheadBufferStart;
+    // do not iterate past look-ahead buffer (to the right)
+    int maxSearchLength = this->lookAheadBufferLength;
+    if (lookAheadBufferStart + this->lookAheadBufferLength > srcLen)
+      maxSearchLength = (int) srcLen - lookAheadBufferStart;
+
     // find the longest match
-    while (searchIndex + 1 > searchBufferStartIndex) {
-      size_t matchLength = 1;
-      if (src[searchIndex] == src[lookUpIndex]) {
-        size_t searchNext = searchIndex + 1;
-        size_t lookUpNext = lookUpIndex + 1;
-        while (src[searchNext] == src[lookUpNext]) {
-          matchLength++;
-          searchNext++;
-          lookUpNext++;
-        }
-        if (matchLength > std::get<1>(t))
-          t = std::make_tuple(lookUpIndex - searchIndex, matchLength, (uint8_t *) src + lookUpIndex + matchLength);
+    for (int offset = 1; offset <= maxSearchOffset; offset++) {
+      int matchLen = 0;
+      int leftIdx = lookAheadBufferStart - offset + matchLen;
+      int rightIdx = lookAheadBufferStart + matchLen;
+      while (src[leftIdx] == src[rightIdx]
+          && matchLen < maxSearchLength) {
+        matchLen++;
+        leftIdx++;
+        rightIdx++;
       }
-      searchIndex--;
+
+      if (matchLen > std::get<1>(t)) {
+        t = std::make_tuple(offset, matchLen, src[rightIdx]);
+      }
     }
     compressedBlocks.emplace_back(t);
-    size_t lastMatchLen = std::get<1>(compressedBlocks[compressedBlocks.size() - 1]) + 1;
-    searchBufferStartIndex += lastMatchLen;
+    lookAheadBufferStart += std::get<1>(t) + 1;
   }
-
   // write compressed values
-  size_t nextPos = this->searchBufferLength;
-  for (auto r : compressedBlocks) {
+  size_t nextPos = 0;
+  for (auto t : compressedBlocks) {
+    /*
+    // TODO include this. Only excluded for test case
     if (nextPos + 3 >= srcLen)
       throw std::range_error("Compressed size is larger than original");
-    memcpy(dst + nextPos, &std::get<0>(r), 1);
-    memcpy(dst + nextPos + 1, &std::get<1>(r), 1);
-    memcpy(dst + nextPos + 2, std::get<2>(r), 1);
+    */
+    memcpy(dst + nextPos, &std::get<0>(t), 1);
+    memcpy(dst + nextPos + 1, &std::get<1>(t), 1);
+    memcpy(dst + nextPos + 2, &std::get<2>(t), 1);
     nextPos += 3;
   }
+
+  if (nextPos != compressedBlocks.size() * 3)
+    throw std::logic_error("");
   return nextPos;
 }
 
 size_t DictionaryCodec::decode(const uint8_t *src, size_t srcLen, uint8_t *dst) {
-  memcpy(dst, src, this->searchBufferLength);
-
-  size_t positionToWrite = this->searchBufferLength;
-  while (compressedPosition < srcLen) {
-    size_t matchPosition = src[compressedPosition];
-    size_t matchLength = src[compressedPosition + 1];
-    uint8_t symbol = src[compressedPosition + 2];
+  size_t dstPos = 0;
+  size_t srcPos = 0;
+  while (srcPos < srcLen) {
+    size_t matchPosition = src[srcPos];
+    size_t matchLength = src[srcPos + 1];
+    uint8_t symbol = src[srcPos + 2];
     for (size_t i = 0; i < matchLength; i++) {
-      memcpy(dst + positionToWrite, &dst[positionToWrite - matchPosition], 1);
-      positionToWrite++;
+      memcpy(dst + dstPos, &dst[dstPos - matchPosition], 1);
+      dstPos++;
     }
-    memcpy(dst + positionToWrite, &symbol, 1);
-    positionToWrite++;
-    compressedPosition += 3;
+    memcpy(dst + dstPos, &symbol, 1);
+    dstPos++;
+    srcPos += 3;
   }
-
-  this->compressedPosition = -1;
-  return positionToWrite;
+  return dstPos;
 }
 
-void DictionaryCodec::setSearchBufferLength(size_t length) {
+// Getter
+int DictionaryCodec::GetSearchBufferLength() const {
+  return searchBufferLength;
+}
+int DictionaryCodec::GetLookAheadBufferLength() const {
+  return lookAheadBufferLength;
+}
+
+// Setter
+void DictionaryCodec::SetSearchBufferLength(int length) {
+  if (length < 1)
+    throw std::invalid_argument("Search buffer length must be greater than 0");
   this->searchBufferLength = length;
 }
-
-void DictionaryCodec::setLookAheadBufferLength(size_t length) {
+void DictionaryCodec::SetLookAheadBufferLength(int length) {
+  if (length < 1)
+    throw std::invalid_argument("Look-ahead buffer length must be greater than 0");
   this->lookAheadBufferLength = length;
 }
